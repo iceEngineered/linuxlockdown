@@ -65,50 +65,9 @@ cp /var/log/auth.log ~/Desktop/logs/auth.log
 echo "Auth log has been created."
 cp /var/log/syslog ~/Desktop/logs/syslog.log
 echo "System log has been created."
-#I have 0 idea what the stuff below this is, but I saw the word log so
-clear
-apt-get install tree -y -qq
-apt-get install diffuse -y -qq
-mkdir Desktop/Comparatives
-chmod 777 Desktop/Comparatives
 
-cp /etc/apt/apt.conf.d/10periodic Desktop/Comparatives/
-cp Desktop/logs/allports.log Desktop/Comparatives/
-cp Desktop/logs/allservices.txt Desktop/Comparatives/
-touch Desktop/Comparatives/alltextfiles.txt
-find . -type f -exec grep -Iq . {} \; -and -print >> Desktop/Comparatives/alltextfiles.txt
-cp Desktop/logs/allusers.txt Desktop/Comparatives/
-cp /etc/apache2/apache2.conf Desktop/Comparatives/
-cp /etc/pam.d/common-auth Desktop/Comparatives/
-cp /etc/pam.d/common-password Desktop/Comparatives/
-cp /etc/init/control-alt-delete.conf Desktop/Comparatives/
-crontab -l > Desktop/Comparatives/crontab.log
-cp /etc/group Desktop/Comparatives/
-cp /etc/hosts Desktop/Comparatives/
-touch Desktop/Comparatives/initctl-running.txt
-initctl list | grep running > Desktop/Comparatives/initctl-running.txt
-cp /etc/lightdm/lightdm.conf Desktop/Comparatives/
-cp Desktop/logs/listeningports.log Desktop/Comparatives/
-cp /etc/login.defs Desktop/Comparatives/
-cp Desktop/logs/manuallyinstalled.log Desktop/Comparatives/
-cp /etc/mysql/my.cnf Desktop/Comparatives/
-cp Desktop/logs/packages.log Desktop/Comparatives/
-cp /etc/passwd Desktop/Comparatives/
-cp Desktop/logs/processes.log Desktop/Comparatives/
-cp /etc/rc.local Desktop/Comparatives/
-cp /etc/samba/smb.conf Desktop/Comparatives/
-cp Desktop/logs/socketconnections.log Desktop/Comparatives/
-cp /etc/apt/sources.list Desktop/Comparatives/
-cp /etc/ssh/sshd_config Desktop/Comparatives/
-cp /etc/sudoers Desktop/Comparatives/
-cp /etc/sysctl.conf Desktop/Comparatives/
-tree / -o Desktop/Comparatives/tree.txt -n -p -h -u -g -D -v
-cp /etc/vsftpd.conf Desktop/Comparatives/
-echo "Tree and Diffuse have been installed, files on current system have been copied for comparison."
-
-chmod 777 -R Desktop/Comparatives/
-chmod 777 -R Desktop/backups
-chmod 777 -R Desktop/logs
+chmod 777 -R ~/Desktop/backups
+chmod 777 -R ~/Desktop/logs
 
 clear
 chmod 777 /etc/apt/apt.conf.d/10periodic
@@ -136,27 +95,34 @@ then
 	cp /etc/apt/sources.list ~Desktop/backups/
 	echo -e "deb http://us.archive.ubuntu.com/ubuntu/ xenial main restricted universe multiverse \ndeb-src http://us.archive.ubuntu.com/ubuntu/ xenial main restricted universe multiverse \ndeb http://us.archive.ubuntu.com/ubuntu/ xenial-security main restricted universe multiverse\ndeb http://us.archive.ubuntu.com/ubuntu/ xenial-updates main restricted universe multiverse\ndeb http://us.archive.ubuntu.com/ubuntu/ xenial-proposed main restricted universe multiverse\ndeb-src http://us.archive.ubuntu.com/ubuntu/ xenial-security main restricted universe multiverse\ndeb-src http://us.archive.ubuntu.com/ubuntu/ xenial-updates main restricted universe multiverse\ndeb-src http://us.archive.ubuntu.com/ubuntu/ xenial-proposed main restricted universe multiverse" > /etc/apt/sources.list
 	chmod 644 /etc/apt/sources.list
+elif [[ $(lsb_release -r) == "Release:	18.04" ]] || [[ $(lsb_release -r) == "Release:	18.10" ]]
+then
+	chmod 777 /etc/apt/sources.list
+	cp /etc/apt/sources.list ~/Desktop/backups/
+	echo -e "deb http://us.archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse\ndeb-src http://us.archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse\ndeb http://us.archive.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse\ndeb http://us.archive.ubuntu.com/ubuntu/ bionic-updates main restricted universe multiverse\ndeb http://us.archive.ubuntu.com/ubuntu/ bionic-proposed main restricted universe multiverse\ndeb-src http://us.archive.ubuntu.com/ubuntu/ bionic-security main restricted universe multiverse\ndeb-src http://us.archive.ubuntu.com/ubuntu/ bionic-updates main restricted universe multiverse\ndeb-src http://us.archive.ubuntu.com/ubuntu/ bionic-proposed main restricted universe multiverse\ndeb-src http://security.ubuntu.com/ubuntu/ bionic-proposed main restricted universe multiverse" > /etc/apt/sources.list
+	chmod 644 /etc/apt/sources.list
 else
 	echo “Error, cannot detect OS version”
 fi
 echo "Apt Repositories have been added."
+
 if [ $update_y = "y" ]
 then
 clear
-apt-get update -qq
-apt-get upgrade -qq
-apt-get dist-upgrade -qq
+apt-get -qq update
+apt-get -qq upgrade
+apt-get -qq dist-upgrade
 echo "Ubuntu OS has checked for updates and has been upgraded."
 
 clear
-apt-get update && apt-get install linux-image-generic -y -qq
-apt-get update && apt-get install linux-headers-generic -y -qq
+apt-get -y -qq update && apt-get -y -qq install linux-image-generic
+apt-get -y -qq update && apt-get -y -qq install linux-headers-generic
 echo "Kernel updates checked for and upgraded."
 
 clear
-apt-get autoremove -y -qq
-apt-get autoclean -y -qq
-apt-get clean -y -qq
+apt-get -y -qq autoremove
+apt-get -y -qq autoclean
+apt-get -y -qq clean
 echo "All unused packages have been removed."
 
 clear
@@ -164,8 +130,8 @@ echo "Check to verify that all update settings are correct."
 update-manager
 
 clear
-apt-get update
-apt-get upgrade openssl libssl-dev
+apt-get -y -qq update
+apt-get -y -qq upgrade openssl libssl-dev
 apt-cache policy openssl libssl-dev
 echo "OpenSSL heart bleed bug has been fixed."
 
@@ -174,6 +140,7 @@ env i='() { :;}; echo Your system is Bash vulnerable. See checklist for how to s
 echo "Shellshock Bash vulnerability is secured."
 fi
 }
+
 function roottest() {
   ROOT_UID=0
 
@@ -185,13 +152,16 @@ function roottest() {
     exit 1
   fi
 }
+
 function InternetTest() {
   if ping -q -c 1 -W 1 8.8.8.8 >/dev/null; then
     echo -e "${Green}Internet Test Success${NC}"
   else
     echo -e "${Red}Internet Connection Unavailable${NC}"
     exit 1
-  fi }
+  fi
+}
+
 function CMDSTEST() {
       if [ $? -eq 0 ]; then
          echo -e $1 "${Green}Successful${NC}"
@@ -199,6 +169,7 @@ function CMDSTEST() {
          echo -e $1 "${Red}Failed${NC}"
       fi
     }
+
 function userlock() {
 ####################################PASSWORD FILE####################################
 touch ~/Desktop/Password.txt
@@ -206,7 +177,7 @@ echo -e "Use Custom Password or built-in?(y/n)"
 read pwyn
 if [ $pwyn == y ]
 then
-    echo "Password  -  "
+    echo "Password:  "
     read pw
     echo "$pw" > ~/Desktop/Password.txt
     echo "Password has been set as '$pw'."
@@ -372,6 +343,7 @@ clear
 echo -e "${Green} User Functions Complete! ${NC}"
 sleep 10
 }
+
 function filelock() {
   echo "All audio files Listed below." >> ~/Desktop/Script.log
   find / -name "*.midi" -type f >> ~/Desktop/Script.log
