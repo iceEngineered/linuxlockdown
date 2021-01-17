@@ -14,11 +14,101 @@ ${NC} "
 if [ "$1" = "Help" ]
 then
 echo -e "${Red}Run with no more than one option at a time ${NC} "
-echo "Full - Userlock - Help - Prework"
+echo "Full -Applock -Filelock - Userlock - Prework - Help"
 echo -e "${Red}There  is  NO  WARRANTY, to the extent permitted by law.${NC}"
 exit 0
 fi
 ####################################LOG&BACKUP FILE####################################
+if [ "$1" = "Full" || "Userlock" ]
+touch ~/Desktop/Password.txt
+echo -e "Use Custom Password or built-in?(y/n)"
+read pwyn
+if [ $pwyn == y ]
+then
+    echo "Password:  "
+    read pw
+    echo "$pw" > ~/Desktop/Password.txt
+    echo "Password has been set as '$pw'."
+else
+    echo 'H=Fmcqz3M]}&rfC$F>b)' > ~/Desktop/Password.txt
+    echo "Password has been set as 'H=Fmcqz3M]}&rfC$F>b)'."
+fi
+
+chmod 777 ~/Desktop/Password.txt
+echo "Password file is on desktop. Copy password from the file."
+declare -i numusers
+declare -i numadminusers
+declare -i numnewusers
+declare -A users=()
+declare -A adminusers=()
+declare -A newusers=()
+echo "How many users need to be added? ex: 5 "
+echo -e "Use Custom Password or built-in?(y/n)"
+echo "DONT FORGET TO INCLUDE THEM LATER"
+read numnewusers
+echo "How many non-admin users? ex: 5"
+read numusers
+echo "How many ADMIN users? ex: 5"
+read numadminusers
+echo "Want to remove every user you haven't mentioned? (y/n)"
+read removeunknownusers
+i=1
+((numnewusers += 1))
+while [[ $i -lt $numnewusers ]] ; do
+     echo "enter name of user$i - "
+     read newusers[$i]
+     echo "newuser$i recorded as - ${newusers[$i]}  - "
+    (( i += 1 ))
+done
+i=1
+while [[ $i -lt $numnewusers ]] ; do
+    newuser=${newusers[$i]}
+    echo "newuser$i is $newuser "
+    (( i += 1 ))
+done
+while [[ $i -lt $numadminusers ]] ; do
+     echo "enter name of user$i - "
+     read adminusers[$i]
+     echo "adminuser$i recorded as - ${adminusers[$i]}  - "
+    (( i += 1 ))
+done
+i=1
+while [[ $i -lt $numadminusers ]] ; do
+    adminuser=${adminusers[$i]}
+    echo "adminuser$i is $adminuser "
+    (( i += 1 ))
+done
+echo "Is ALL of that correct?? (y/n)"
+read correct
+if [ $correct = "n" ]
+exit 0
+fi
+fi
+if [ "$1" = "Full" || "Applock"]
+then
+echo "Does this machine need Samba?"
+read sambaYN
+echo "Does this machine need FTP?"
+read ftpYN
+echo "Does this machine need SSH?"
+read sshYN
+echo "Does this machine need Telnet?"
+read telnetYN
+echo "Does this machine need Mail?"
+read mailYN
+echo "Does this machine need Printing?"
+read printYN
+echo "Does this machine need MySQL?"
+read dbYN
+echo "Will this machine be a Web Server?"
+read httpYN
+echo "Does this machine need DNS?"
+read dnsYN
+echo "Does this machine need remote desktop capabilities?"
+read rdpYN
+fi
+
+
 function prework(){
 echo "Update every thing at end? y/n"
 read update_y
@@ -171,7 +261,26 @@ function CMDSTEST() {
     }
 
 function userlock() {
-####################################PASSWORD FILE####################################
+
+clear
+cp /etc/login.defs ~/Desktop/backups/
+sed -i '160s/.*/PASS_MAX_DAYS\o01130/' /etc/login.defs
+sed -i '161s/.*/PASS_MIN_DAYS\o0113/' /etc/login.defs
+sed -i '162s/.*/PASS_WARN_AGE\o0117/' /etc/login.defs
+echo "Password policies have been set with /etc/login.defs."
+
+clear
+apt-get install libpam-cracklib -y -qq
+cp /etc/pam.d/common-auth ~/Desktop/backups/
+cp /etc/pam.d/common-password ~/Desktop/backups/
+#SET THIS TO WHAT WE HAVE
+echo -e "#\n# /etc/pam.d/common-auth - authentication settings common to all services\n#\n# This file is included from other service-specific PAM config files,\n# and should contain a list of the authentication modules that define\n# the central authentication scheme for use on the system\n# (e.g., /etc/shadow, LDAP, Kerberos, etc.).  The default is to use the\n# traditional Unix authentication mechanisms.\n#\n# As of pam 1.0.1-6, this file is managed by pam-auth-update by default.\n# To take advantage of this, it is recommended that you configure any\n# local modules either before or after the default block, and use\n# pam-auth-update to manage selection of other modules.  See\n# pam-auth-update(8) for details.\n\n# here are the per-package modules (the \"Primary\" block)\nauth	[success=1 default=ignore]	pam_unix.so nullok_secure\n# here's the fallback if no module succeeds\nauth	requisite			pam_deny.so\n# prime the stack with a positive return value if there isn't one already;\n# this avoids us returning an error just because nothing sets a success code\n# since the modules above will each just jump around\nauth	required			pam_permit.so\n# and here are more per-package modules (the \"Additional\" block)\nauth	optional			pam_cap.so \n# end of pam-auth-update config\nauth required pam_tally2.so deny=5 unlock_time=1800 onerr=fail audit even_deny_root_account silent" > /etc/pam.d/common-auth
+echo -e "#\n# /etc/pam.d/common-password - password-related modules common to all services\n#\n# This file is included from other service-specific PAM config files,\n# and should contain a list of modules that define the services to be\n# used to change user passwords.  The default is pam_unix.\n\n# Explanation of pam_unix options:\n#\n# The \"sha512\" option enables salted SHA512 passwords.  Without this option,\n# the default is Unix crypt.  Prior releases used the option \"md5\".\n#\n# The \"obscure\" option replaces the old \`OBSCURE_CHECKS_ENAB\' option in\n# login.defs.\n#\n# See the pam_unix manpage for other options.\n\n# As of pam 1.0.1-6, this file is managed by pam-auth-update by default.\n# To take advantage of this, it is recommended that you configure any\n# local modules either before or after the default block, and use\n# pam-auth-update to manage selection of other modules.  See\n# pam-auth-update(8) for details.\n\n# here are the per-package modules (the \"Primary\" block)\npassword	[success=1 default=ignore]	pam_unix.so obscure sha512\n# here's the fallback if no module succeeds\npassword	requisite			pam_deny.so\n# prime the stack with a positive return value if there isn't one already;\n# this avoids us returning an error just because nothing sets a success code\n# since the modules above will each just jump around\npassword	required			pam_permit.so\n# and here are more per-package modules (the \"Additional\" block)\npassword	optional	pam_gnome_keyring.so \n# end of pam-auth-update config" > /etc/pam.d/common-password
+#sed -i '1s/^/password requisite pam_cracklib.so try_first_pass retry=3 difok=4 minlen=16 lcredit=-1 ucredit=-1 dcredit=-1 ocredit=-1 maxrepeat=2 reject_username gecoscheck enforce_for_root\n/' /etc/pam.d/common-password
+echo "If password policies are not correctly configured, try this for /etc/pam.d/common-password:\npassword requisite pam_cracklib.so retry=3 minlen=8 difok=3 reject_username minclass=3 maxrepeat=2 dcredit=1 ucredit=1 lcredit=1 ocredit=1\npassword requisite pam_pwhistory.so use_authtok remember=24 enforce_for_root"
+echo "Password policies have been set with /etc/pam.d."
+
+
 touch ~/Desktop/Password.txt
 echo -e "Use Custom Password or built-in?(y/n)"
 read pwyn
@@ -531,14 +640,435 @@ function filelock() {
 
 
 }
+
 function applock() {
   echo -e "${Green}Applock starting${NC}"
-	#also later problem
+	if [ $sambaYN == no ]
+	then
+		ufw deny netbios-ns
+		ufw deny netbios-dgm
+		ufw deny netbios-ssn
+		ufw deny microsoft-ds
+		apt-get purge samba -y -qq
+		apt-get purge samba-common -y  -qq
+		apt-get purge samba-common-bin -y -qq
+		apt-get purge samba4 -y -qq
+		clear
+		echo "netbios-ns, netbios-dgm, netbios-ssn, and microsoft-ds ports have been denied. Samba has been removed."
+	elif [ $sambaYN == yes ]
+	then
+		ufw allow netbios-ns
+		ufw allow netbios-dgm
+		ufw allow netbios-ssn
+		ufw allow microsoft-ds
+		apt-get install samba -y -qq
+		apt-get install system-config-samba -y -qq
+		cp /etc/samba/smb.conf ~/Desktop/backups/
+		if [ "$(grep '####### Authentication #######' /etc/samba/smb.conf)"==0 ]
+		then
+			sed -i 's/####### Authentication #######/####### Authentication #######\nsecurity = user/g' /etc/samba/smb.conf
+		fi
+		sed -i 's/usershare allow guests = no/usershare allow guests = yes/g' /etc/samba/smb.conf
+
+		echo Type all user account names, with a space in between
+		read -a usersSMB
+		usersSMBLength=${#usersSMB[@]}
+		for (( i=0;i<$usersSMBLength;i++))
+		do
+			echo -e 'H=Fmcqz3M]}&rfC$F>b)\nH=Fmcqz3M]}&rfC$F>b)' | smbpasswd -a ${usersSMB[${i}]}
+			echo "${usersSMB[${i}]} has been given the password 'H=Fmcqz3M]}&rfC$F>b)' for Samba."
+		done
+		echo "netbios-ns, netbios-dgm, netbios-ssn, and microsoft-ds ports have been denied. Samba config file has been configured."
+		clear
+	else
+		echo Response not recognized.
+	fi
+	echo "Samba is complete."
+
+	clear
+	if [ $ftpYN == no ]
+	then
+		ufw deny ftp
+		ufw deny sftp
+		ufw deny saft
+		ufw deny ftps-data
+		ufw deny ftps
+		apt-get purge vsftpd -y -qq
+		echo "vsFTPd has been removed. ftp, sftp, saft, ftps-data, and ftps ports have been denied on the firewall."
+	elif [ $ftpYN == yes ]
+	then
+		ufw allow ftp
+		ufw allow sftp
+		ufw allow saft
+		ufw allow ftps-data
+		ufw allow ftps
+		cp /etc/vsftpd/vsftpd.conf ~/Desktop/backups/
+		cp /etc/vsftpd.conf ~/Desktop/backups/
+		gedit /etc/vsftpd/vsftpd.conf&gedit /etc/vsftpd.conf
+		service vsftpd restart
+		echo "ftp, sftp, saft, ftps-data, and ftps ports have been allowed on the firewall. vsFTPd service has been restarted."
+	else
+		echo Response not recognized.
+	fi
+	echo "FTP is complete."
+
+
+	clear
+	if [ $sshYN == no ]
+	then
+		ufw deny ssh
+		apt-get purge openssh-server -y -qq
+		echo "SSH port has been denied on the firewall. Open-SSH has been removed."
+	elif [ $sshYN == yes ]
+	then
+		apt-get install openssh-server -y -qq
+		apt-get install libpam-google-authenticator -y -qq
+		ufw allow ssh
+		cp /etc/ssh/sshd_config ~/Desktop/backups/
+		echo Type all user account names, with a space in between
+		read usersSSH
+		echo -e "# Package generated configuration file\n# See the sshd_config(5) manpage for details\n\n# What ports, IPs and protocols we listen for\nPort 3784\n# Use these options to restrict which interfaces/protocols sshd will bind to\n#ListenAddress ::\n#ListenAddress 0.0.0.0\nProtocol 2\n# HostKeys for protocol version \nHostKey /etc/ssh/ssh_host_rsa_key\nHostKey /etc/ssh/ssh_host_dsa_key\nHostKey /etc/ssh/ssh_host_ecdsa_key\nHostKey /etc/ssh/ssh_host_ed25519_key\n#Privilege Separation is turned on for security\nUsePrivilegeSeparation yes\n\n# Lifetime and size of ephemeral version 1 server key\nKeyRegenerationInterval 3600\nServerKeyBits 1024\n\n# Logging\nSyslogFacility AUTH\nLogLevel VERBOSE\n\n# Authentication:\nLoginGraceTime 60\nPermitRootLogin no\nStrictModes yes\n\nRSAAuthentication yes\nPubkeyAuthentication yes\n#AuthorizedKeysFile	%h/.ssh/authorized_keys\n\n# Don't read the user's ~/.rhosts and ~/.shosts files\nIgnoreRhosts yes\n# For this to work you will also need host keys in /etc/ssh_known_hosts\nRhostsRSAAuthentication no\n# similar for protocol version 2\nHostbasedAuthentication no\n# Uncomment if you don't trust ~/.ssh/known_hosts for RhostsRSAAuthentication\n#IgnoreUserKnownHosts yes\n\n# To enable empty passwords, change to yes (NOT RECOMMENDED)\nPermitEmptyPasswords no\n\n# Change to yes to enable challenge-response passwords (beware issues with\n# some PAM modules and threads)\nChallengeResponseAuthentication yes\n\n# Change to no to disable tunnelled clear text passwords\nPasswordAuthentication no\n\n# Kerberos options\n#KerberosAuthentication no\n#KerberosGetAFSToken no\n#KerberosOrLocalPasswd yes\n#KerberosTicketCleanup yes\n\n# GSSAPI options\n#GSSAPIAuthentication no\n#GSSAPICleanupCredentials yes\n\nX11Forwarding no\nX11DisplayOffset 10\nPrintMotd no\nPrintLastLog no\nTCPKeepAlive yes\n#UseLogin no\n\nMaxStartups 2\n#Banner /etc/issue.net\n\n# Allow client to pass locale environment variables\nAcceptEnv LANG LC_*\n\nSubsystem sftp /usr/lib/openssh/sftp-server\n\n# Set this to 'yes' to enable PAM authentication, account processing,\n# and session processing. If this is enabled, PAM authentication will\n# be allowed through the ChallengeResponseAuthentication and\n# PasswordAuthentication.  Depending on your PAM configuration,\n# PAM authentication via ChallengeResponseAuthentication may bypass\n# the setting of \"PermitRootLogin without-password\".\n# If you just want the PAM account and session checks to run without\n# PAM authentication, then enable this but set PasswordAuthentication\n# and ChallengeResponseAuthentication to 'no'.\nUsePAM yes\n\nAllowUsers $usersSSH\nDenyUsers\nRhostsAuthentication no\nClientAliveInterval 300\nClientAliveCountMax 0\nVerifyReverseMapping yes\nAllowTcpForwarding no\nUseDNS no\nPermitUserEnvironment no" > /etc/ssh/sshd_config
+		service ssh restart
+		mkdir ~/.ssh
+		chmod 700 ~/.ssh
+		ssh-keygen -t rsa
+		echo "SSH port has been allowed on the firewall. SSH config file has been configured. SSH RSA 2048 keys have been created."
+	else
+		echo Response not recognized.
+	fi
+	echo "SSH is complete."
+
+	clear
+	if [ $telnetYN == no ]
+	then
+		ufw deny telnet
+		ufw deny rtelnet
+		ufw deny telnets
+		apt-get purge telnet -y -qq
+		apt-get purge telnetd -y -qq
+		apt-get purge inetutils-telnetd -y -qq
+		apt-get purge telnetd-ssl -y -qq
+		echo "Telnet port has been denied on the firewall and Telnet has been removed."
+	elif [ $telnetYN == yes ]
+	then
+		ufw allow telnet
+		ufw allow rtelnet
+		ufw allow telnets
+		echo "Telnet port has been allowed on the firewall."
+	else
+		echo Response not recognized.
+	fi
+	echo "Telnet is complete."
+
+
+
+	clear
+	if [ $mailYN == no ]
+	then
+		ufw deny smtp
+		ufw deny pop2
+		ufw deny pop3
+		ufw deny imap2
+		ufw deny imaps
+		ufw deny pop3s
+		echo "smtp, pop2, pop3, imap2, imaps, and pop3s ports have been denied on the firewall."
+	elif [ $mailYN == yes ]
+	then
+		ufw allow smtp
+		ufw allow pop2
+		ufw allow pop3
+		ufw allow imap2
+		ufw allow imaps
+		ufw allow pop3s
+		echo "smtp, pop2, pop3, imap2, imaps, and pop3s ports have been allowed on the firewall."
+	else
+		echo Response not recognized.
+	fi
+	echo "Mail is complete."
+
+
+
+	clear
+	if [ $printYN == no ]
+	then
+		ufw deny ipp
+		ufw deny printer
+		ufw deny cups
+		echo "ipp, printer, and cups ports have been denied on the firewall."
+	elif [ $printYN == yes ]
+	then
+		ufw allow ipp
+		ufw allow printer
+		ufw allow cups
+		echo "ipp, printer, and cups ports have been allowed on the firewall."
+	else
+		echo Response not recognized.
+	fi
+	echo "Printing is complete."
+
+
+
+	clear
+	if [ $dbYN == no ]
+	then
+		ufw deny ms-sql-s
+		ufw deny ms-sql-m
+		ufw deny mysql
+		ufw deny mysql-proxy
+		apt-get purge mysql -y -qq
+		apt-get purge mysql-client-core-5.5 -y -qq
+		apt-get purge mysql-client-core-5.6 -y -qq
+		apt-get purge mysql-common-5.5 -y -qq
+		apt-get purge mysql-common-5.6 -y -qq
+		apt-get purge mysql-server -y -qq
+		apt-get purge mysql-server-5.5 -y -qq
+		apt-get purge mysql-server-5.6 -y -qq
+		apt-get purge mysql-client-5.5 -y -qq
+		apt-get purge mysql-client-5.6 -y -qq
+		apt-get purge mysql-server-core-5.6 -y -qq
+		echo "ms-sql-s, ms-sql-m, mysql, and mysql-proxy ports have been denied on the firewall. MySQL has been removed."
+	elif [ $dbYN == yes ]
+	then
+		ufw allow ms-sql-s
+		ufw allow ms-sql-m
+		ufw allow mysql
+		ufw allow mysql-proxy
+		apt-get install mysql-server-5.6 -y -qq
+		cp /etc/my.cnf ~/Desktop/backups/
+		cp /etc/mysql/my.cnf ~/Desktop/backups/
+		cp /usr/etc/my.cnf ~/Desktop/backups/
+		cp ~/.my.cnf ~/Desktop/backups/
+		if grep -q "bind-address" "/etc/mysql/my.cnf"
+		then
+			sed -i "s/bind-address\t\t=.*/bind-address\t\t= 127.0.0.1/g" /etc/mysql/my.cnf
+		fi
+		gedit /etc/my.cnf&gedit /etc/mysql/my.cnf&gedit /usr/etc/my.cnf&gedit ~/.my.cnf
+		service mysql restart
+		echo "ms-sql-s, ms-sql-m, mysql, and mysql-proxy ports have been allowed on the firewall. MySQL has been installed. MySQL config file has been secured. MySQL service has been restarted."
+	else
+		echo Response not recognized.
+	fi
+	echo "MySQL is complete."
+
+
+
+	clear
+	if [ $httpYN == no ]
+	then
+		ufw deny http
+		ufw deny https
+		apt-get purge apache2 -y -qq
+		rm -r /var/www/*
+		echo "http and https ports have been denied on the firewall. Apache2 has been removed. Web server files have been removed."
+	elif [ $httpYN == yes ]
+	then
+		apt-get install apache2 -y -qq
+		ufw allow http
+		ufw allow https
+		cp /etc/apache2/apache2.conf ~/Desktop/backups/
+		if [ -e /etc/apache2/apache2.conf ]
+		then
+	  	  echo -e '\<Directory \>\n\t AllowOverride None\n\t Order Deny,Allow\n\t Deny from all\n\<Directory \/\>\nUserDir disabled root' >> /etc/apache2/apache2.conf
+		fi
+		chown -R root:root /etc/apache2
+
+		echo "http and https ports have been allowed on the firewall. Apache2 config file has been configured. Only root can now access the Apache2 folder."
+	else
+		echo Response not recognized.
+	fi
+	echo "Web Server is complete."
+
+
+
+	clear
+	if [ $dnsYN == no ]
+	then
+		ufw deny domain
+		apt-get purge bind9 -qq
+		echo "domain port has been denied on the firewall. DNS name binding has been removed."
+	elif [ $dnsYN == yes ]
+	then
+		ufw allow domain
+		echo "domain port has been allowed on the firewall."
+	else
+		echo Response not recognized.
+	fi
+	echo "DNS is complete."
+
+	clear
+	apt-get purge netcat -y -qq
+	apt-get purge netcat-openbsd -y -qq
+	apt-get purge netcat-traditional -y -qq
+	apt-get purge ncat -y -qq
+	apt-get purge pnetcat -y -qq
+	apt-get purge socat -y -qq
+	apt-get purge sock -y -qq
+	apt-get purge socket -y -qq
+	apt-get purge sbd -y -qq
+	rm /usr/bin/nc
+	clear
+	echo "Netcat and all other instances have been removed."
+
+	apt-get purge john -y -qq
+	apt-get purge john-data -y -qq
+	clear
+	echo "John the Ripper has been removed."
+
+	apt-get purge hydra -y -qq
+	apt-get purge hydra-gtk -y -qq
+	clear
+	echo "Hydra has been removed."
+
+	apt-get purge aircrack-ng -y -qq
+	clear
+	echo "Aircrack-NG has been removed."
+
+	apt-get purge fcrackzip -y -qq
+	clear
+	echo "FCrackZIP has been removed."
+
+	apt-get purge lcrack -y -qq
+	clear
+	echo "LCrack has been removed."
+
+	apt-get purge ophcrack -y -qq
+	apt-get purge ophcrack-cli -y -qq
+	clear
+	echo "OphCrack has been removed."
+
+	apt-get purge pdfcrack -y -qq
+	clear
+	echo "PDFCrack has been removed."
+
+	apt-get purge pyrit -y -qq
+	clear
+	echo "Pyrit has been removed."
+
+	apt-get purge rarcrack -y -qq
+	clear
+	echo "RARCrack has been removed."
+
+	apt-get purge sipcrack -y -qq
+	clear
+	echo "SipCrack has been removed."
+
+	apt-get purge irpas -y -qq
+	clear
+	echo "IRPAS has been removed."
+
+	clear
+	echo 'Are there any hacking tools shown? (not counting libcrack2:amd64 or cracklib-runtime)'
+	dpkg -l | egrep "crack|hack" >> ~/Desktop/Script.log
+
+	apt-get purge logkeys -y -qq
+	clear
+	echo "LogKeys has been removed."
+
+	apt-get purge zeitgeist-core -y -qq
+	apt-get purge zeitgeist-datahub -y -qq
+	apt-get purge python-zeitgeist -y -qq
+	apt-get purge rhythmbox-plugin-zeitgeist -y -qq
+	apt-get purge zeitgeist -y -qq
+	echo "Zeitgeist has been removed."
+
+	apt-get purge nfs-kernel-server -y -qq
+	apt-get purge nfs-common -y -qq
+	apt-get purge portmap -y -qq
+	apt-get purge rpcbind -y -qq
+	apt-get purge autofs -y -qq
+	echo "NFS has been removed."
+
+	apt-get purge nginx -y -qq
+	apt-get purge nginx-common -y -qq
+	echo "NGINX has been removed."
+
+	apt-get purge inetd -y -qq
+	apt-get purge openbsd-inetd -y -qq
+	apt-get purge xinetd -y -qq
+	apt-get purge inetutils-ftp -y -qq
+	apt-get purge inetutils-ftpd -y -qq
+	apt-get purge inetutils-inetd -y -qq
+	apt-get purge inetutils-ping -y -qq
+	apt-get purge inetutils-syslogd -y -qq
+	apt-get purge inetutils-talk -y -qq
+	apt-get purge inetutils-talkd -y -qq
+	apt-get purge inetutils-telnet -y -qq
+	apt-get purge inetutils-telnetd -y -qq
+	apt-get purge inetutils-tools -y -qq
+	apt-get purge inetutils-traceroute -y -qq
+	echo "Inetd (super-server) and all inet utilities have been removed."
+
+	clear
+	apt-get purge vnc4server -y -qq
+	apt-get purge vncsnapshot -y -qq
+	apt-get purge vtgrab -y -qq
+	echo "VNC has been removed."
+
+	clear
+	apt-get purge snmp -y -qq
+	echo "SNMP has been removed."
+
+	clear
+	apt-get purge zenmap -y -qq
+	apt-get purge nmap -y -qq
+	echo "Zenmap and nmap have been removed."
+
+	clear
+	apt-get purge wireshark -y -qq
+	apt-get purge wireshark-common -y -qq
+	apt-get purge wireshark-gtk -y -qq
+	apt-get purge wireshark-qt -y -qq
+	echo "Wireshark has been removed."
+
+	clear
+	apt-get purge crack -y -qq
+	apt-get purge crack-common -y -qq
+	echo "Crack has been removed."
+
+	clear
+	apt-get purge medusa -y -qq
+	echo "Medusa has been removed."
+
+	clear
+	apt-get purge nikto -y -qq
+	echo "Nikto has been removed."
+
+	clear
+	apt-get purge _ -y -qq #WorldForge
+	echo "WorldForge has been removed."
+
+	clear
+	apt-get purge _ -y -qq #Minetest
+	echo "Minetest has been removed."
+
+	clear
+	apt-get purge _ -y -qq #Freeciv
+	echo "Freeciv has been removed."
+
+	clear
+	apt-get purge _ -y -qq #Aisleriot
+	echo "Aisleriot has been removed."
+
+	clear
+	apt-get purge _ -y -qq #Wesnoth
+	echo "Wesnoth has been removed."
+
+	clear
+	apt-get install firefox hardinfo chkrootkit portsentry lynis gufw sysv-rc-conf nessus clamav rkhunter -y -qq
+	apt-get install --reinstall coreutils -y -qq
+	echo "Firefox, hardinfo, chkrootkit, portsentry, lynis, gufw, sysv-rc-conf, nessus, clamav, and rkhunter installed."
+
+	clear
+	apt-get install apparmor apparmor-profiles apparmor-utils -y -qq #check?
+	echo "AppArmor has been installed."
 }
+
 function netlock(){
   echo -e "${Green}Netlock starting${NC}"
 	#this is a later problem, add what you want
 }
+
+
 #put fullsend last, just calls others
 function fullsend() {
   echo -e "${Green} Full send - I'm not responsible if this screws something up. ${NC}"
